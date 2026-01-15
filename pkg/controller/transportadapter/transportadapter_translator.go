@@ -522,6 +522,43 @@ func (t *transportAdapterTranslator) translateTransportAdapterConfig(server *v1a
 		return nil, fmt.Errorf("unsupported transport type: %s", server.Spec.TransportType)
 	}
 
+	// Build the route with optional TLS configuration
+	route := LocalRoute{
+		RouteName: "mcp",
+		Matches: []RouteMatch{
+			{
+				Path: PathMatch{
+					PathPrefix: "/sse",
+				},
+			},
+			{
+				Path: PathMatch{
+					PathPrefix: "/mcp",
+				},
+			},
+		},
+		Backends: []RouteBackend{{
+			Weight: 100,
+			MCP: &MCPBackend{
+				Targets: []MCPTarget{mcpTarget},
+			},
+		}},
+	}
+
+	// Add TLS configuration if specified for HTTP transport
+	if server.Spec.TransportType == v1alpha1.TransportTypeHTTP &&
+		server.Spec.HTTPTransport != nil &&
+		server.Spec.HTTPTransport.TLS != nil {
+		tlsConfig := server.Spec.HTTPTransport.TLS
+		route.Policies = &FilterOrPolicy{
+			BackendTLS: &BackendTLS{
+				Cert: tlsConfig.ClientCert,
+				Key:  tlsConfig.ClientKey,
+				Root: tlsConfig.CACert,
+			},
+		}
+	}
+
 	config := &LocalConfig{
 		Config: struct{}{},
 		Binds: []LocalBind{
@@ -531,27 +568,7 @@ func (t *transportAdapterTranslator) translateTransportAdapterConfig(server *v1a
 					{
 						Name:     "default",
 						Protocol: "HTTP",
-						Routes: []LocalRoute{{
-							RouteName: "mcp",
-							Matches: []RouteMatch{
-								{
-									Path: PathMatch{
-										PathPrefix: "/sse",
-									},
-								},
-								{
-									Path: PathMatch{
-										PathPrefix: "/mcp",
-									},
-								},
-							},
-							Backends: []RouteBackend{{
-								Weight: 100,
-								MCP: &MCPBackend{
-									Targets: []MCPTarget{mcpTarget},
-								},
-							}},
-						}},
+						Routes:   []LocalRoute{route},
 					},
 				},
 			},

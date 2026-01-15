@@ -160,6 +160,25 @@ type HTTPTransport struct {
 
 	// the target path where MCP is served
 	TargetPath string `json:"path,omitempty"`
+
+	// TLS defines the TLS configuration for HTTPS access to the MCP server.
+	// +optional
+	TLS *HTTPTransportTLS `json:"tls,omitempty"`
+}
+
+// HTTPTransportTLS defines the TLS configuration for HTTP transport.
+type HTTPTransportTLS struct {
+	// ClientCert is the path to the client certificate file.
+	// +optional
+	ClientCert string `json:"clientCert,omitempty"`
+
+	// ClientKey is the path to the client key file.
+	// +optional
+	ClientKey string `json:"clientKey,omitempty"`
+
+	// CACert is the path to the CA certificate file.
+	// +optional
+	CACert string `json:"caCert,omitempty"`
 }
 
 // MCPServerStatus defines the observed state of MCPServer.
